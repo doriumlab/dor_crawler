@@ -33,8 +33,10 @@
         <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
-            <version>1.4.4</version>
+            <version>1.6.1</version>
         </dependency>
+
+
         <!--<dependency>-->
             <!--&lt;!&ndash; This gives us the Procedure API our runtime code uses.-->
                  <!--We have a `provided` scope on it, because when this is-->
