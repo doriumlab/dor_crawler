@@ -54,12 +54,15 @@ private class Crawler {
         return pointer.get()
     }
 
-    private fun loadAddress(addressToGet: String): PageData {
+    private fun loadAddress(addressToGet: String): PageData? {
 
         val jx = Jsoup.connect(addressToGet).validateTLSCertificates(false).get()
         val x = Xsoup.compile("//*[@id=\"frmSecProductMain\"]/div[2]/header/div[1]/h1/text()").evaluate(jx).get()
-        val enTitle = Xsoup.compile("//*[@id=\"frmSecProductMain\"]/div[2]/header/div[1]/h1/span/text()").evaluate(jx).get()
         val price = Xsoup.compile("//*[@id=\"notifyMeButton\"]/@data-price").evaluate(jx).get()
+        if (price.toLong() < 0) {
+            return null
+        }
+        val enTitle = Xsoup.compile("//*[@id=\"frmSecProductMain\"]/div[2]/header/div[1]/h1/span/text()").evaluate(jx).get()
         val brand = Xsoup.compile("//*[@id=\"frmSecProductMain\"]/div[2]/header/div/div/div[1]/a/text()").evaluate(jx).get()
         val image = Xsoup.compile("//*[@id=\"frmSecProductMain\"]/div[1]/div[2]/div/img/@src").evaluate(jx).get()
         //val description = Xsoup.compile("//*[@id=\"frmSecProductDescription\"]/div/div/p[2]/text()").evaluate(jx).get()
@@ -93,6 +96,7 @@ private class Crawler {
                     startedJobs.addAndGet(1)
                     val res = loadAddress(addressPointer)
                     neo4jInit.addCounter()
+                    if(res != null){
                     val product = Product()
                     product.FaTitle = res.title
                     product.EnTitle = res.enTitle
@@ -101,13 +105,9 @@ private class Crawler {
                     product.Description = res.description
                     product.SourceURL = addressPointer
                     neo4jInit.addCounter()
-                   if (product.Price!!.toLong() > 0) {
-
-                       // neo4jInit.addProduct(product)
+                        // neo4jInit.addProduct(product)
                         println("1-Current Pointer : ${pointer.get()} and Address : $addressPointer >>> ${product.EnTitle}")
-                    }else{
-                        println("2-Current Pointer : ${pointer.get()} and Address : $addressPointer >>> ${product.EnTitle}")
-                   }
+                    }
 
                 } catch (e: Exception) {
                     println(e.message)
