@@ -11,7 +11,6 @@ import java.util.regex.Pattern
 import java.util.HashMap
 
 
-
 private class Crawler {
     private var addressList = mutableListOf<String>()
     private var startedJobs = AtomicInteger(0)
@@ -22,7 +21,8 @@ private class Crawler {
     private var stopped = false
     private var exited = false
     var startFrom = 0
-    val neo4jInit = Neo4jDriver("bolt://localhost:7687","neo4j","qazWSXEDCRFV!1")
+    val neo4jInit = Neo4jDriver("bolt://localhost:7687", "neo4j", "qazWSXEDCRFV!1")
+
     init {
         System.setProperty("javax.net.ssl.trustStore", "$basePath\\digi2.jks")
         startFrom = try {
@@ -55,7 +55,8 @@ private class Crawler {
     }
 
     private fun loadAddress(addressToGet: String): PageData {
-        val jx = Jsoup.connect(addressToGet).get()
+
+        val jx = Jsoup.connect(addressToGet).validateTLSCertificates(false).get()
         val x = Xsoup.compile("//*[@id=\"frmSecProductMain\"]/div[2]/header/div[1]/h1/text()").evaluate(jx).get()
         val enTitle = Xsoup.compile("//*[@id=\"frmSecProductMain\"]/div[2]/header/div[1]/h1/span/text()").evaluate(jx).get()
         val price = Xsoup.compile("//*[@id=\"notifyMeButton\"]/@data-price").evaluate(jx).get()
@@ -63,6 +64,7 @@ private class Crawler {
         val image = Xsoup.compile("//*[@id=\"frmSecProductMain\"]/div[1]/div[2]/div/img/@src").evaluate(jx).get()
         //val description = Xsoup.compile("//*[@id=\"frmSecProductDescription\"]/div/div/p[2]/text()").evaluate(jx).get()
         val description = Xsoup.compile("//*[@id=\"frmSecProductDescription\"]/div/div/p/text()").evaluate(jx).get()
+
         val pd = PageData()
         pd.title = x
         pd.enTitle = enTitle
@@ -71,10 +73,12 @@ private class Crawler {
         pd.imageData = image
         pd.price = price
         return pd
+
     }
 
     fun startCrawl() {
 
+        neo4jInit.resetCounter()
         while (pointer.get() < addressCount() && !stopped) {
             if (pointer.get() % 10 == 0) {
                 while (startedJobs.get() > 0) {
@@ -85,8 +89,10 @@ private class Crawler {
             val addressPointer = addressList[pointer.get()]
             thread {
                 try {
+
                     startedJobs.addAndGet(1)
                     val res = loadAddress(addressPointer)
+                    neo4jInit.addCounter()
                     val product = Product()
                     product.FaTitle = res.title
                     product.EnTitle = res.enTitle
@@ -94,11 +100,15 @@ private class Crawler {
                     product.ImagePath = res.imageData
                     product.Description = res.description
                     product.SourceURL = addressPointer
+                    neo4jInit.addCounter()
+                   if (product.Price!!.toLong() > 0) {
 
-                    neo4jInit.addProduct(product)
+                       // neo4jInit.addProduct(product)
+                        println("1-Current Pointer : ${pointer.get()} and Address : $addressPointer >>> ${product.EnTitle}")
+                    }else{
+                        println("2-Current Pointer : ${pointer.get()} and Address : $addressPointer >>> ${product.EnTitle}")
+                   }
 
-                    //println(res.description)
-                    println("Current Pointer : ${pointer.get()} and Address : $addressPointer >>> ${product.FaTitle}")
                 } catch (e: Exception) {
                     println(e.message)
                 } finally {
@@ -138,10 +148,50 @@ class Neo4jDriver(uri: String, user: String, password: String) : AutoCloseable {
             return false
         }
     }
+
+    fun resetCounter(): Unit {
+        try {
+            driver.session().use({ session ->
+                return session.writeTransaction(object : TransactionWork<Unit> {
+                    override fun execute(tx: Transaction): Unit {
+                        val query = """
+                            MATCH (rs:RS)
+                            WHERE rs.SiteId = "50cfc9e8-402b-495b-8ed4-66dcb2b3aadd"
+                            SET rs.CountedProduct = 0""".trimMargin();
+                        tx.run(query)
+
+                    }
+                })
+            })
+        } catch (ex: ServiceUnavailableException) {
+
+        }
+    }
+
+    fun addCounter(): Unit {
+        try {
+            driver.session().use({ session ->
+                return session.writeTransaction(object : TransactionWork<Unit> {
+                    override fun execute(tx: Transaction): Unit {
+                        val updateCounter = """
+                                    MATCH (rs:RS)
+                                    WHERE rs.SiteId = "50cfc9e8-402b-495b-8ed4-66dcb2b3aadd"
+                                    WITH rs.CountedProduct as count, rs
+                                    SET rs.CountedProduct = count + 1""".trimMargin();
+                        tx.run(updateCounter)
+
+                    }
+                })
+            })
+        } catch (ex: ServiceUnavailableException) {
+
+        }
+
+
+    }
 }
 
 fun main(args: Array<String>) {
-
     val x = Crawler()
     println("Welcome to DX Crawler!")
     while (true) {

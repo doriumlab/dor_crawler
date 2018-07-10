@@ -37,6 +37,7 @@
         </dependency>
 
 
+
         <!--<dependency>-->
             <!--&lt;!&ndash; This gives us the Procedure API our runtime code uses.-->
                  <!--We have a `provided` scope on it, because when this is-->
@@ -85,23 +86,23 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.neo4j.driver</groupId>
-                <artifactId>neo4j-java-driver</artifactId>
-                <version>1.4.4</version>
-                <executions>
-                    <execution>
-                        <id>compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <jvmTarget>1.8</jvmTarget>
-                </configuration>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.neo4j.driver</groupId>-->
+                <!--<artifactId>neo4j-java-driver</artifactId>-->
+                <!--<version>1.6.1</version>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>compile</id>-->
+                        <!--<phase>compile</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>compile</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+                <!--<configuration>-->
+                    <!--<jvmTarget>1.8</jvmTarget>-->
+                <!--</configuration>-->
+            <!--</plugin>-->
 
 
 
@@ -127,6 +128,20 @@
                 </executions>
                 <configuration>
                     <jvmTarget>1.8</jvmTarget>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <!-- Build an executable JAR -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>Crawler.kt</mainClass>
+                        </manifest>
+                    </archive>
                 </configuration>
             </plugin>
         </plugins>
